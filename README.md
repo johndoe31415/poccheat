@@ -1,8 +1,9 @@
 # poccheat
-This is a cheat program for the 1987 classic "Ports of Call". It is mainly a
-little reverse engineering exercise I did to keep my real mode debugging skills
-up to date. It only works to cheat on single player savegames currently and
-does not perform any sophisticated sanity checks.
+This is a cheat program for the 1987 classic
+"[Ports of Call](https://store.steampowered.com/app/1085260/Ports_of_Call_Classic/)".
+ It is mainly a little reverse engineering exercise I did to keep my real mode
+debugging skills up to date. It only works to cheat on single player savegames
+currently and does not perform any sophisticated sanity checks.
 
 ## Usage
 ```
