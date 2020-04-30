@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+#	poccheat - Cheat program for the 1987 DOS game "Ports of Call"
+#	Copyright (C) 2020-2020 Johannes Bauer
+#
+#	This file is part of poccheat.
+#
+#	poccheat is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	poccheat is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with poccheat; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+
+import sys
+import struct
+from FriendlyArgumentParser import FriendlyArgumentParser
+
+parser = FriendlyArgumentParser(description = "Ports of Call (POC) cheat application.")
+parser.add_argument("-m", "--money", metavar = "money", type = int, help = "Set money to the specified amount.")
+parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")
+parser.add_argument("savefile", metavar = "savefile", type = str, help = "Ports of Call savegame (*.TRF) file")
+args = parser.parse_args(sys.argv[1:])
+
+def getuint32(data, offset):
+	(value, ) = struct.unpack("<L", savegame[offset : offset + 4])
+	return value
+
+def binpatch(data, offset, patch):
+	for (offset, value) in enumerate(patch, offset):
+		data[offset] = value
+
+def uint32(value):
+	return value & 0xffffffff
+
+def calc_checksum(savegame):
+	money = getuint32(savegame, 0x69)
+	calc_checksum = uint32((uint32(0xb46f6e0f + ((money + 1) ^ 0xffa4)) * 0x2a8f1) + 0x4d2)
+	return calc_checksum
+
+with open(args.savefile, "rb") as f:
+	savegame = bytearray(f.read())
+
+money = getuint32(savegame, 0x69) * 1000
+print("Current money      : %d (%.1f million)" % (money, money / 1e6))
+
+checksum = getuint32(savegame, 0x499)
+calculated_checksum = calc_checksum(savegame)
+print("Current checksum   : %08x" % (checksum))
+print("Calculated checksum: %08x (%s)" % (calculated_checksum, "OK" if calculated_checksum == checksum else "FAIL"))
+
+if args.money is not None:
+	new_money = round(args.money / 1000) * 1000
+	new_money_field = new_money // 1000
+	new_money_bin = struct.pack("<L", new_money_field)
+	print("New money          : %d (%.1f million)" % (new_money, new_money / 1e6))
+	binpatch(savegame, 0x69, new_money_bin)
+
+	new_checksum = calc_checksum(savegame)
+	new_checksum_bin = struct.pack("<L", new_checksum)
+	print("New checksum       : %x" % (new_checksum))
+	binpatch(savegame, 0x499, new_checksum_bin)
+
+	with open("cheat.trp", "wb") as f:
+		f.write(savegame)
